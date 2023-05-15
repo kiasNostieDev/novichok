@@ -13,6 +13,7 @@ import "firebase/auth";
 import { getDownloadURL, getStorage, ref } from "firebase/storage";
 import { initializeApp } from "firebase/app";
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { createBrowserHistory } from 'history'
 
 const firebaseConfig = {
   apiKey: "AIzaSyCatMwzLeSG16AlEYxvj548t71eL6S1saM",
@@ -40,28 +41,12 @@ function App() {
   const [open, setOpen] = React.useState(false)
   const [MFA, setMFA] = useState("")
 
-
-  // Alert for credential registation on register button click
-  const handleClick = () => {
-    // setOpen(true);
-    var mail = prompt("Type your email ID")
-    var pwd = prompt("Type a new password")
-    const auth = getAuth();
-    console.log(auth)
-
-    createUserWithEmailAndPassword(auth,mail,pwd)
-      .then((credential) => {
-        const user = credential.user
-        alert("User Created successfully" + user.getIdToken)
-        setRegister("Registered Succesfully")
-      })
-      .catch((error) => {
-        const errorCode = error.code
-        const errorMessage = error.message
-        alert(errorMessage)
-      })
-
-  };
+  const isAuthenticated = localStorage.getItem("isAuthenticated")
+  if(isAuthenticated !== "True"){
+    console.log("yool")
+    createBrowserHistory().push('/auth')
+    window.location.reload()
+  }
 
   const handleClose = (event: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') {
@@ -94,7 +79,8 @@ function App() {
           <div className='titleTop'>Novichok</div>
         </div>
         <div className='rightbar'>
-          <div className='downloads' onClick={handleClick}>{register}</div>
+          <div className='downloads'>Hello {localStorage.getItem("email")}</div>
+          <div className='downloads'>logout</div>
         </div>
       </div>
     )
@@ -128,61 +114,29 @@ function App() {
     )
   }
 
-  function toLogin(email, pwd){
-    const auth = getAuth()
-    console.log(auth)
-    alert(email + pwd)
-    signInWithEmailAndPassword(auth, email, pwd)
-    .then((userCredential) => {
-      alert("Successful Login, Saving your prefered MFA. You'll get the file soon")
-    })
-    .catch((error) => {
-      alert(error.message)
-    })
+  function downloadURI(uri, name) {
+    var link = document.createElement("a");
+    link.download = name;
+    link.href = uri;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   //To handle login and send to the api then get the file
   function handleMFAChange(event){
-    const email = (event.target.elements.email.value)
-    const pwd = (event.target.elements.pwd.value)
-    const org = (event.target.elements.org.value)
-    const mfa = (event.target.elements.mfa.value)
-    toLogin(email, pwd)
-    return
+    
+    const storage = getStorage() 
 
-    const auth = getAuth()
-    signInWithEmailAndPassword(auth, email, pwd)
-      .then((userCredential) => {
-        alert("Successful Login, Saving your prefered MFA. You'll get the file soon")
-
-        const storage = getStorage()
-        const pathReference = ref(storage, 'debpacktest_1.0-2.deb')
-        const gsReference = ref(storage, 'gs://bucket/debpacktest_1.0-2.deb')
-        const httpsReference = ref(storage, 'https://firebasestorage.googleapis.com/b/bucket/o/images%20stars.jpg');  
-
-        getDownloadURL(ref(storage, 'debpacktest_1.0-2.deb'))
-          .then((url) => {
-            // `url` is the download URL for 'images/stars.jpg'
-
-            // This can be downloaded directly:
-            const xhr = new XMLHttpRequest();
-            xhr.responseType = 'blob';
-            xhr.onload = (event) => {
-              const blob = xhr.response;
-            };
-            xhr.open('GET', url);
-            xhr.send();
-            alert("Got the file")
-          })
-          .catch((error) => {
-            // Handle any errors
-            alert(error.message)
-          });
+    getDownloadURL(ref(storage, 'debpacktest_1.0-2.deb'))
+      .then((url) => {
+        setOpen(true)
+        downloadURI(url, 'debpacktest_1.0-2.deb')
       })
-      .catch(error => {
+      .catch((error) => {
+        // Handle any errors
         alert(error.message)
-      })
-      alert("Broken drum")
+      });
   }
 
   function GetFilePage() {
@@ -195,15 +149,11 @@ function App() {
           <div className='infoCard'>The services lets the authentication to be split into pre authentication and validation part with <span>clear motives</span>.</div>
         </div>
         <div className='givedetails'>
-          <form onSubmit={handleMFAChange}>
+          <form name='fileForm'>
             <div className='formHeading'>Get add-on file</div>
-
-            <input name="email" type='email' placeholder='Registered Mail ID'/><br/>
-            <input name="pwd" type='password' placeholder='Registered Password'/><br/>
-            <input name="org" type='text' placeholder='Organisation'/><br/>
             <Select name="mfa" className='selector' options={options}/>
 
-            <button type="submit">Get File</button>
+            <button onClick={handleMFAChange} type="button">Get File</button>
           </form>
         </div>
       </div>
@@ -215,12 +165,9 @@ function App() {
       <div className='setup'>
         <div className='terminal'>
           <div className='steps'><span>1. </span>Download the file</div>
-          <div className='steps'><span>2. </span>Run the following commands</div>
-          <div className='commands'><span className='redHash'># </span>sudo chmod +x novichok.sh</div>
-          <div className='commands'><span className='redHash'># </span>sudo nano /etc/pam.d/common-auth</div>
-          <div className='commands'><span className='redHash'># </span>sudo chmod +x novichok.sh</div>
-          <div className='steps'><span>3. </span>Add the line</div>
-          <div className='commands'>Auth  required.  Novichok.so</div>
+          <div className='steps'><span>2. </span>Run the following command</div>
+          <div className='commands'><span className='redHash'># </span>cd *file-directory*</div>
+          <div className='commands'><span className='redHash'># </span>dpkg -i novichokMFA.deb</div>
         </div>
       </div>
     )
@@ -237,7 +184,7 @@ function App() {
         open={open}
         autoHideDuration={6000}
         onClose={handleClose}
-        message="Feature until development"
+        message="Got the File URL"
         action={action}
       />
     </div>

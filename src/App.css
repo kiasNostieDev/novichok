@@ -224,6 +224,10 @@ input{
   color: green;
 }
 
+.auth{
+  color: black;
+}
+
 button{
   width: 100px;
   float: right;
