@@ -4,23 +4,35 @@ import PasswordIcon from '@mui/icons-material/Password';
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import firebase from "firebase/app";
 import "firebase/auth";
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApp } from "firebase/app";
 import { createBrowserHistory } from 'history'
+import { getDatabase, ref, set } from "firebase/database";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCatMwzLeSG16AlEYxvj548t71eL6S1saM",
     authDomain: "novichokhub.firebaseapp.com",
+    databaseURL: "https://novichokhub-default-rtdb.firebaseio.com",
     projectId: "novichokhub",
     storageBucket: "novichokhub.appspot.com",
     messagingSenderId: "151054528032",
     appId: "1:151054528032:web:18bedd63a4c369f99e1645"
-  };
+};
+
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const createFirebaseApp = (config = {}) => {
+    try {
+      return getApp();
+    } catch (e) {
+      return initializeApp(firebaseConfig);
+    }
+}
+
+const app = createFirebaseApp()
+const database = getDatabase(app)
 
 export default function Auth() {
 
-    const [pageOptions, setPageOptions] = useState(['login', 'register'])
+    const [pageOptions, setPageOptions] = useState(['register', 'login'])
 
     function authSetter(){
         localStorage.setItem("isAuthenticated", "True")
@@ -30,10 +42,10 @@ export default function Auth() {
         const mail = (document.forms['loginForm'].elements['email'].value)
         const pwd = (document.forms['loginForm'].elements['pwd'].value)
         const auth = getAuth()
-        console.log(auth)
         signInWithEmailAndPassword(auth, mail, pwd)
         .then((userCredential) => {
             alert("Successful Login!")
+            localStorage.setItem("uid", userCredential.user.uid)
             localStorage.setItem("isAuthenticated", "True")
             localStorage.setItem("email", userCredential.user.email)
             createBrowserHistory().push('/')
@@ -53,14 +65,29 @@ export default function Auth() {
         console.log("here at the method")
         const mail = (document.forms['registerForm'].elements['email'].value)
         const pwd = (document.forms['registerForm'].elements['pwd'].value)
+        const name = (document.forms['registerForm'].elements['name'].value)
+        const org = (document.forms['registerForm'].elements['org'].value)
         const auth = getAuth();
         console.log(mail, pwd)
 
         createUserWithEmailAndPassword(auth,mail,pwd)
         .then((credential) => {
             const user = credential.user
-            alert("User Created successfully")
-            window.location.reload()
+            try{
+                set(ref(database, "users/" + user.uid), {
+                    username: name,
+                    email: mail,
+                    org: org
+                }).then(()=>{
+                    alert("User Created successfully")
+                    window.location.reload()
+                }).catch(error=>{
+                    console.log(error)
+                    alert(error)
+                })
+            }catch(e){
+                alert(e)
+            }
         })
         .catch((error) => {
             const errorCode = error.code
@@ -105,8 +132,10 @@ export default function Auth() {
                 <form name='registerForm'>
                     <div className = 'formHeading'>Register</div>
 
-                    <input name="email" type='email' placeholder='Registered Mail ID'/><br/>
-                    <input name="pwd" type='password' placeholder='Registered Password'/><br/>
+                    <input name="name" type='text' placeholder='Name'/><br/>
+                    <input name="email" type='email' placeholder='Mail ID'/><br/>
+                    <input name="pwd" type='password' placeholder='Password'/><br/>
+                    <input name="org" type='text' placeholder='Organisation'/><br/>
                     <button onClick={(e) =>handleRegister(e)} type='button'>Register</button>
                 </form>
             </div>
@@ -117,7 +146,7 @@ export default function Auth() {
         <div className='auth'>
             <AppBar/>
             <div className="content">
-                {(pageOptions[0] === 'login') ? <Login/> : <Register/>}
+                {(pageOptions[0] === 'login') ? <Register/> : <Login/>}
             </div>
         </div>
     )

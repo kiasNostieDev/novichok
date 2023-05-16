@@ -11,9 +11,10 @@ import CloseIcon from '@mui/icons-material/Close';
 import firebase from "firebase/app";
 import "firebase/auth";
 import { getDownloadURL, getStorage, ref } from "firebase/storage";
-import { initializeApp } from "firebase/app";
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { initializeApp, getApp } from "firebase/app";
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { createBrowserHistory } from 'history'
+import { child, get, getDatabase, onValue, set } from "firebase/database"
 
 const firebaseConfig = {
   apiKey: "AIzaSyCatMwzLeSG16AlEYxvj548t71eL6S1saM",
@@ -21,11 +22,22 @@ const firebaseConfig = {
   projectId: "novichokhub",
   storageBucket: "novichokhub.appspot.com",
   messagingSenderId: "151054528032",
-  appId: "1:151054528032:web:18bedd63a4c369f99e1645"
+  appId: "1:151054528032:web:18bedd63a4c369f99e1645",
+  databaseURL: "https://novichokhub-default-rtdb.firebaseio.com/",
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+
+const createFirebaseApp = () => {
+  try {
+    return getApp();
+  } catch (e) {
+    return initializeApp(firebaseConfig);
+  }
+};
+
+const app = createFirebaseApp()
+const database = getDatabase(app)
 
 
 function App() {
@@ -70,6 +82,15 @@ function App() {
     </React.Fragment>
   );
 
+  function handleSignout(){
+    const auth = getAuth()
+    signOut(auth).then(()=>{
+      alert("Signed out")
+      localStorage.setItem("isAuthenticated", "False")
+      window.location.reload()
+    })
+  }
+
   //Top App Bar
   function AppBar() {
     return (
@@ -80,7 +101,7 @@ function App() {
         </div>
         <div className='rightbar'>
           <div className='downloads'>Hello {localStorage.getItem("email")}</div>
-          <div className='downloads'>logout</div>
+          <div className='downloads' onClick={handleSignout}>signOut</div>
         </div>
       </div>
     )
@@ -125,9 +146,7 @@ function App() {
 
   //To handle login and send to the api then get the file
   function handleMFAChange(event){
-    
     const storage = getStorage() 
-
     getDownloadURL(ref(storage, 'debpacktest_1.0-2.deb'))
       .then((url) => {
         setOpen(true)
